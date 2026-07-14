@@ -93,12 +93,14 @@ Production:
 
 ## Quick Start
 
-### Prerequisites
+### Development
 
-- **Java 21** or higher
-- **Maven 3.9+** (wrapper included)
+#### Prerequisites
 
-### Run in Development Mode (H2 Database)
+- Java 21 or higher
+- Maven 3.9+ (wrapper included)
+
+#### Run in Development Mode (H2 Database)
 
 ```bash
 # Clone the repository
@@ -109,7 +111,7 @@ cd task-manager
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Open `http://localhost:8080/login` and log in with:
+Open `http://localhost:3000/login` (SPA front-end port) and log in with:
 
 | Username | Password | Role |
 | :--- | :--- | :--- |
@@ -117,20 +119,22 @@ Open `http://localhost:8080/login` and log in with:
 | `bob` | `password123` | USER |
 | `admin` | `admin123` | ADMIN |
 
-### Run in Production Mode
-```bash
-# 1. Create the secrets file
-sudo mkdir -p /etc/task-manager
-echo "db.username=taskuser" | sudo tee /etc/task-manager/secrets.properties
-echo "db.password=your_password" | sudo tee -a /etc/task-manager/secrets.properties
-sudo chmod 600 /etc/task-manager/secrets.properties
-sudo chown $USER:$USER "/etc/task-manager/secrets.properties"
-sudo chown $USER:$USER "/etc/task-manager/"
+### Production Deployment
 
-# 2. Set up database
-# PostgreSQL:
-sudo -u postgres psql "
--- 1. Create Database (Idempotent, i.e., script can be re-run)
+#### Prerequisites
+- PostgreSQL 14+ or MySQL 8+
+- Java 21
+- Maven 3.9+
+
+#### Step 1: Set Up Database
+
+##### Option A: PostgreSQL
+```bash
+# 1. Set your database password as environment variable
+export TASKDB_PASS="your_secure_password"
+
+# 2. Run the setup script
+sudo -u postgres psql << EOF
 SELECT 'CREATE DATABASE taskdb
     WITH ENCODING = ''UTF8''
     LC_COLLATE = ''pt_BR.utf8''
@@ -139,60 +143,75 @@ SELECT 'CREATE DATABASE taskdb
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'taskdb')
 \gexec
 
--- 2. Create User (Idempotent)
 SELECT 'CREATE USER taskuser WITH PASSWORD ''${TASKDB_PASS}'';'
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'taskuser')
 \gexec
 
--- 3. Permissions and grants
-
--- Make taskuser owner of the database
 ALTER DATABASE taskdb owner to taskuser;
-
--- Make taskuser owner of the public schema
 ALTER SCHEMA public OWNER TO taskuser;
-
--- Grant everything on the database
 GRANT ALL PRIVILEGES ON DATABASE taskdb TO taskuser;
-
---Grant everything on the schema
 GRANT ALL ON SCHEMA public TO taskuser;
-GRANT CREATE ON SCHEMA public TO taskuser;
-GRANT USAGE ON SCHEMA public TO taskuser;
+EOF
+```
 
--- Grant all on existing tables (if any)
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO taskuser;
-
--- For future tables
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO taskuser;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO taskuser;
-"
-
-# Option to MySQL:
+##### Option B: MySQL
+```bash
 mysql -u root -p -e "
-  CREATE DATABASE IF NOT EXISTS taskdb;
-  CREATE USER IF NOT EXISTS 'taskuser'@'localhost' IDENTIFIED BY 'your_password';
-  GRANT ALL PRIVILEGES ON taskdb.* TO 'taskuser'@'localhost';
-  FLUSH PRIVILEGES;
- -- 1. Create Database
-CREATE DATABASE IF NOT EXISTS taskdb
+  CREATE DATABASE IF NOT EXISTS taskdb
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
-
--- 2. Create User (Idempotent)
-CREATE USER IF NOT EXISTS 'taskuser'@'localhost'
+  
+  CREATE USER IF NOT EXISTS 'taskuser'@'localhost'
     IDENTIFIED BY '${TASKDB_PASS}';
-
--- 3. Grant Privileges
-GRANT ALL PRIVILEGES ON taskdb.* TO 'taskuser'@'localhost';
-
--- 4. Apply changes
-FLUSH PRIVILEGES;
+  
+  GRANT ALL PRIVILEGES ON taskdb.* TO 'taskuser'@'localhost';
+  FLUSH PRIVILEGES;
 "
+```
 
-# 3. Run with prod profile
+#### Step 2: Configure Secrets
+
+```bash
+# Create the secrets directory
+sudo mkdir -p /etc/task-manager
+
+# Add database credentials
+sudo tee /etc/task-manager/secrets.properties << EOF
+db.username=taskuser
+db.password=${TASKDB_PASS}
+EOF
+
+# Secure the file
+sudo chmod 600 /etc/task-manager/secrets.properties
+```
+
+#### Step 3: Run in Production
+
+```bash
+# Set the frontend URL (if you have one)
+export FRONTEND_URL="https://your-frontend-domain.com"
+
+# Run the application
 SPRING_PROFILES_ACTIVE=prod mvn spring-boot:run
 ```
+
+#### Step 4: Build for Production
+
+```bash
+# Build the JAR file
+mvn clean package -DskipTests
+
+# Run the JAR
+SPRING_PROFILES_ACTIVE=prod java -jar target/task-manager-0.0.1-SNAPSHOT.jar
+```
+
+#### Security Notes
+- **Never commit secrets to version control**
+- Use environment variables or a secrets manager in production
+- Change default passwords immediately
+- Use HTTPS in production
+- Regularly update dependencies
+
 ---
 
 ## API Endpoints
@@ -249,15 +268,7 @@ Response includes metadata:
   }
 }
 ```
----
 
-## Interactive API Docs
-
-After starting the app, open:
-
-```text
-http://localhost:8080/swagger-ui.html
-```
 ---
 
 ## Running Tests
@@ -292,7 +303,7 @@ docker-compose down
 
 ## Project Structure
 
-The back-end structure is follows.
+The back-end structure uses port 8080 and is as follows:
 
 ```
 src/
@@ -312,7 +323,7 @@ src/
 └── test/...             # Unit + integration tests
 ```
 
-Also, the full-stack project is structured as follows.
+Also, the full-stack project adding the front-end port 3000 has the structure bellow:
 
 ```
 /projects/
@@ -352,7 +363,6 @@ Also, the full-stack project is structured as follows.
 - **PostgreSQL / H2** — Production / Development database
 - **Vanilla JavaScript** — SPA frontend (no frameworks)
 - **JUnit 5 + Mockito** — Testing
-- **Swagger/OpenAPI** — API documentation
 - **Docker** — Containerization
 - **PlantUML** — Architecture diagrams
 - **Maven** — Build and dependency management
@@ -363,8 +373,6 @@ Also, the full-stack project is structured as follows.
 
 - **Javadoc:** Generate with `mvn javadoc:javadoc` (output in `target/reports/apidocs/`)
 - **UML Diagrams:** See `docs/diagrams/` folder
-- **Request Flow:** See [docs/request-flow.md](docs/request-flow.md) for step-by-step execution tracing
-- **Swagger UI:** http://localhost:8080/swagger-ui.html
 
 ---
 
@@ -380,6 +388,10 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 - GitHub: [@lussac7](https://github.com/lussac7/task-manager)
 - LinkedIn: [Lussac P. Maia](https://linkedin.com/in/lussac-maia-eng-software)
+
+Acknowledgments: This project was developed with the assistance of DeepSeek AI for code 
+generation and problem-solving. 
+All architecture decisions, testing, and final code reviews were performed by me.
 
 ---
 
