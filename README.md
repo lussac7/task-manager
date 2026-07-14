@@ -363,8 +363,6 @@ Also, the full-stack project is structured as follows.
 
 - **Javadoc:** Generate with `mvn javadoc:javadoc` (output in `target/reports/apidocs/`)
 - **UML Diagrams:** See `docs/diagrams/` folder
-- **Request Flow:** See [docs/request-flow.md](docs/request-flow.md) for step-by-step execution tracing
-- **Swagger UI:** http://localhost:8080/swagger-ui.html
 
 ---
 
