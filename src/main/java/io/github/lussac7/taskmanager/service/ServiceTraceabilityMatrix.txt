@@ -1,0 +1,11 @@
+Service Layer Traceability Matrix
+
+Service Method	                        Use Case	                    Sequence Diagram Step
+TaskService.createTask()	            UC1: Create a Task	            (Not fully sequenced, but follows same pattern)
+TaskService.markTaskComplete()	        UC2: Mark Task as Complete	    Steps 1-8 (entire diagram)
+TaskService.deleteTask()	            UC4: Delete a Task	            Similar to mark complete
+TaskService.findAllTasksByUser()        UC3: View All Tasks	            Simple query
+TaskService.assignTaskToUser()	        UC5: Assign Task to User	    Steps 1-9 (entire diagram)
+AuditService.logEvent()	                Cross-cutting                   Every sequence, after domain operation
+NotificationService.sendNotification()	<<extend>> on UC2	            opt fragment guard check
+AuthenticationService.authenticate()	<<include>> on UC1, UC4, UC5	Precedes every secured use case

@@ -1,0 +1,163 @@
+# =============================================================================
+# Task Manager - Production Profile Configuration
+# =============================================================================
+# Loaded ONLY when SPRING_PROFILES_ACTIVE=prod is set.
+# Overrides application.yml defaults with production-optimized settings.
+#
+# KEY CHANGES vs Development:
+#   Database:      H2 (in-memory) → PostgreSQL (persistent, durable)
+#   Schema:        create-drop (reset each start) → validate (never modify)
+#   SQL Logging:   Enabled (debugging) → Disabled (performance + security)
+#   H2 Console:    Enabled → Disabled (security risk)
+#   Log Level:     DEBUG/TRACE → WARN/INFO (reduces noise and I/O)
+#   Credentials:   Hardcoded in YAML → External secrets file (secure)
+#   Demo Data:     DataInitializer runs → No demo data (production users only)
+#
+# ACTIVATION:
+#   SPRING_PROFILES_ACTIVE=prod java -jar target/task-manager.jar
+#
+# PREREQUISITES (one-time setup):
+#   1. Create /etc/task-manager/secrets.properties with db.username and db.password
+#      sudo chmod 600 /etc/task-manager/secrets.properties
+#   2. Create PostgreSQL database and user:
+#      CREATE DATABASE taskdb;
+#      CREATE USER taskuser WITH PASSWORD 'your_password';
+#      GRANT ALL PRIVILEGES ON DATABASE taskdb TO taskuser;
+#      GRANT ALL ON SCHEMA public TO taskuser;
+#   3. First run: temporarily change ddl-auto to "update" to create tables,
+#      then switch back to "validate" for all subsequent runs.
+#   4. Insert users directly into PostgreSQL:
+#      INSERT INTO users (username, email, password, role) VALUES (...);
+#      Use BCrypt-hashed passwords (copy from H2 console in dev mode).
+# =============================================================================
+
+# =============================================================================
+# APPLICATION CONFIGURATION
+# =============================================================================
+
+app:
+  # The URL where the frontend SPA is deployed.
+  # In production, this MUST be set to your real frontend domain.
+  # NO default value - if you forget to set this, the application fails to start.
+  # Example: https://app.yourdomain.com
+  frontend-url: ${FRONTEND_URL}
+
+# =============================================================================
+# SPRING BOOT CONFIGURATION
+# =============================================================================
+
+spring:
+  # ===========================================================================
+  # EXTERNAL SECRETS FILE
+  # ===========================================================================
+  # Imports database credentials from a protected file OUTSIDE the application.
+  # The file must exist with permissions 600 (owner read/write only).
+  # "optional:" means the app starts even if the file is missing (but the
+  # database connection will fail with a clear error).
+  config:
+    import: optional:file:/etc/task-manager/secrets.properties
+
+  # ===========================================================================
+  # DATABASE - PostgreSQL (Production)
+  # ===========================================================================
+  # Persistent, durable, ACID-compliant database.
+  # Credentials come from the secrets file imported above.
+  #
+  # URL breakdown:
+  #   jdbc:postgresql://localhost:5432/taskdb
+  #   |--------|  |-------| |--| |------|
+  #   protocol   host       port  database name
+  #
+  # sslmode=prefer: use SSL if the server supports it, fall back to non-SSL if not.
+  # In a real production environment, use sslmode=require or sslmode=verify-full.
+  datasource:
+    url: jdbc:postgresql://localhost:5432/taskdb?sslmode=prefer
+    driver-class-name: org.postgresql.Driver
+    username: ${db.username}    # Read from secrets.properties
+    password: ${db.password}    # Read from secrets.properties
+
+  # ===========================================================================
+  # H2 CONSOLE - DISABLED
+  # ===========================================================================
+  # The H2 web console is a security risk in production.
+  # Even if the H2 driver is on the classpath, the console is not exposed.
+  h2:
+    console:
+      enabled: false
+
+  # ===========================================================================
+  # JPA / HIBERNATE - Conservative Production Settings
+  # ===========================================================================
+  # These settings prioritize DATA SAFETY over developer convenience.
+  jpa:
+    hibernate:
+      # validate: Hibernate checks that @Entity classes match the existing
+      # database schema on startup. If there's a mismatch (e.g., missing column),
+      # the application FAILS TO START with a clear error.
+      #
+      # NEVER use these in production:
+      #   create/create-drop → Deletes ALL data on restart. Catastrophic.
+      #   update            → Modifies schema automatically. No rollback.
+      #
+      # For production schema changes, use Flyway or Liquibase migrations.
+      ddl-auto: validate
+
+    # SQL logging DISABLED.
+    # In production, SQL logs:
+    #   - Slow down request processing (I/O overhead)
+    #   - Fill disk space rapidly under load
+    #   - May leak sensitive data (PII in query parameters)
+    show-sql: false
+
+    properties:
+      hibernate:
+        # No need to format SQL that isn't being logged.
+        format_sql: false
+
+    # PostgreSQL dialect for optimized SQL generation.
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  
+# =============================================================================
+#  SECURITY - Production Security Headers
+# =============================================================================
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true          # Only send cookies over HTTPS
+        http-only: true       # Prevent JavaScript access
+        same-site: strict     # CSRF protection
+        
+# =============================================================================
+# LOGGING - Minimal for Production
+# =============================================================================
+# Follows the principle: "Log enough to debug, not so much you can't find
+# the signal in the noise."
+#
+# Log levels (from least to most verbose):
+#   OFF > ERROR > WARN > INFO > DEBUG > TRACE
+
+logging:
+  level:
+    # Default for ALL loggers not explicitly configured below.
+    # WARN means: show WARN and ERROR messages, hide INFO and DEBUG.
+    root: WARN
+
+    # Application code: INFO level.
+    # Shows business-relevant events: task created, user login, audit events.
+    com.taskmanager: INFO
+
+    # Hibernate: WARN only.
+    # Suppresses: DDL statements, SQL queries, lazy loading details, cache stats.
+    # Still shows: connection failures, constraint violations, transaction errors.
+    org.hibernate: WARN
+
+    # Spring Security: WARN only.
+    # Suppresses: every authentication attempt, every URL authorization check.
+    # Still shows: authentication failures, access denied events (important
+    # for security monitoring - you want to know if someone is trying to break in).
+    org.springframework.security: WARN
+    org.springframework.security.authentication: WARN
+
+    # Connection pool: INFO shows startup and shutdown messages.
+    com.zaxxer.hikari: INFO

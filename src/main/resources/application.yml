@@ -1,0 +1,141 @@
+# =============================================================================
+# Task Manager — Main Configuration (Development Default)
+# =============================================================================
+# This file is ALWAYS loaded. It targets LOCAL DEVELOPMENT: H2 in-memory
+# database, verbose logging, auto-recreated schema.
+#
+# HOW PROFILES WORK:
+# When SPRING_PROFILES_ACTIVE=prod is set, Spring Boot ALSO loads
+# application-prod.yml. That file OVERRIDES matching keys here.
+# Keys NOT overridden fall back to the values in this file.
+#
+# Quick start:
+#   Dev:  mvn spring-boot:run
+#   Prod: SPRING_PROFILES_ACTIVE=prod java -jar target/task-manager.jar
+# =============================================================================
+
+# =============================================================================
+# APPLICATION CONFIGURATION
+# =============================================================================
+
+app:
+  # The URL where the frontend SPA is running.
+  # In development: http://localhost:3000 (Vite dev server).
+  # In production: set FRONTEND_URL environment variable to your real domain.
+  # The ${FRONTEND_URL:http://localhost:3000} syntax means:
+  #   - Read FRONTEND_URL from environment variables
+  #   - If not set, use http://localhost:3000 as the default
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
+# =============================================================================
+# SPRING BOOT CONFIGURATION
+# =============================================================================
+
+spring:
+  # Application identity — used by Spring Cloud, Actuator, and logging.
+  application:
+    name: task-manager
+
+  # ===========================================================================
+  # DATABASE — H2 In-Memory (Development)
+  # ===========================================================================
+  # H2 is an embedded Java database. It runs inside your application's memory.
+  # Benefits: zero installation, fast startup, resets on every restart.
+  # In production, application-prod.yml overrides this with PostgreSQL.
+  datasource:
+    url: jdbc:h2:mem:taskdb           # In-memory mode (data lives in RAM)
+    driver-class-name: org.h2.Driver
+    username: sa                        # Default H2 admin user
+    password:                           # Empty password (safe: H2 is not exposed to network)
+
+  # ===========================================================================
+  # H2 WEB CONSOLE (Development Only)
+  # ===========================================================================
+  # A browser-based SQL client built into H2.
+  # Access at: http://localhost:8080/h2-console
+  # Login with:
+  #   JDBC URL: jdbc:h2:mem:taskdb
+  #   Username: sa
+  #   Password: (leave blank)
+  # DISABLED in production (security risk).
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # ===========================================================================
+  # JPA / HIBERNATE — Object-Relational Mapping
+  # ===========================================================================
+  # JPA maps your @Entity classes (User, Task, etc.) to database tables.
+  # Hibernate is the default JPA implementation in Spring Boot.
+  jpa:
+    hibernate:
+      # create-drop: Creates tables from @Entity classes on startup,
+      # drops them on shutdown. Fresh database every restart.
+      # Production override: validate (checks schema, never modifies data).
+      ddl-auto: create-drop
+    # Log every SQL statement to the console.
+    # Great for learning — you see exactly what queries Hibernate generates.
+    # Disabled in production (performance + prevents data leakage in logs).
+    show-sql: true
+    properties:
+      hibernate:
+        # Pretty-print SQL with line breaks and indentation.
+        format_sql: true
+    # H2-specific SQL dialect. Auto-detected by Spring Boot, explicit for clarity.
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  # ===========================================================================
+  # MAIL — Disabled in Development
+  # ===========================================================================
+  # Prevents Spring Boot from trying to auto-configure email sending.
+  # Email is not used in this project.
+  mail:
+    host: localhost
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
+
+# =============================================================================
+# EMBEDDED SERVER (Tomcat)
+# =============================================================================
+
+server:
+  # The port Tomcat listens on. Override with PORT environment variable.
+  port: ${PORT:8080}
+
+  servlet:
+    # Session tracking: use cookies ONLY.
+    # Why? Spring Security sometimes appends ;jsessionid=... to URLs.
+    # This is a security risk (session ID in URLs can be leaked via browser history,
+    # shared links, or Referer headers). Setting tracking-modes to "cookie"
+    # forces the session ID to ONLY be sent via cookies, never in the URL.
+    session:
+      tracking-modes: cookie
+
+    # File upload configuration for task attachments.
+    multipart:
+      max-file-size: 10MB        # Maximum size for a single uploaded file
+      max-request-size: 10MB     # Maximum size for the entire request (all files combined)
+
+# =============================================================================
+# LOGGING — Verbose for Development
+# =============================================================================
+# Log levels (from least to most verbose):
+#   OFF > ERROR > WARN > INFO > DEBUG > TRACE
+
+logging:
+  level:
+    # Application code: DEBUG shows service method calls and flow control.
+    com.taskmanager: DEBUG
+
+    # Spring Security: DEBUG shows authentication and authorization decisions.
+    # Useful for debugging "why is this request returning 403?"
+    org.springframework.security: DEBUG
+
+    # Hibernate SQL parameter binding: TRACE shows the actual values inserted
+    # into SQL queries. Example output:
+    #   binding parameter [1] as [VARCHAR] - [alice]
+    # ⚠️ WARNING: This logs PASSWORDS during login! Never enable in production.
+    #
+    #org.hibernate.orm.jdbc.bind: TRACE

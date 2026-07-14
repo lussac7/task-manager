@@ -1,0 +1,83 @@
+# =============================================================================
+# Task Manager — Test Configuration
+# =============================================================================
+# Loaded automatically during test execution from src/test/resources/.
+# Overrides main application.yml for complete test isolation.
+#
+# WHY A SEPARATE TEST CONFIGURATION?
+# ==================================
+# 1. ISOLATION: Tests use a DIFFERENT database (testdb) than the application
+#    (taskdb). This prevents tests from corrupting your development data.
+#
+# 2. SPEED: H2 in-memory database starts in milliseconds. No PostgreSQL or
+#    MySQL installation needed. Tests run fast and consistently everywhere.
+#
+# 3. REPEATABILITY: create-drop ensures every test starts with a clean schema.
+#    No leftover data from previous test runs. Each test is independent.
+#
+# 4. NO DEMO DATA: sql.init.mode: never prevents Spring Boot from executing
+#    data.sql or schema.sql files. DataInitializer also doesn't run (it
+#    requires @Profile("dev")). Tests create their own data in @BeforeEach.
+#
+# HOW IT WORKS:
+# =============
+# Spring Boot automatically loads src/test/resources/application.yml during
+# tests. These settings take PRECEDENCE over src/main/resources/application.yml.
+# The main application's settings act as fallbacks for anything NOT defined here.
+# =============================================================================
+
+# =============================================================================
+# APPLICATION CONFIGURATION
+# =============================================================================
+
+app:
+  # The frontend URL is needed by SecurityConfig for redirect URLs.
+  # In tests, we use localhost:3000 (the standard Vite dev server port).
+  # This value is only used when SecurityConfig is loaded in integration tests.
+  frontend-url: http://localhost:3000
+
+# =============================================================================
+# DATABASE — H2 In-Memory (Test)
+# =============================================================================
+# H2 is an embedded Java database. No installation needed.
+# In-memory mode: data lives in RAM, destroyed on shutdown.
+# Perfect for tests: fast, isolated, consistent.
+
+spring:
+  datasource:
+    # testdb — DIFFERENT from the main app's taskdb.
+    # This prevents tests from accidentally reading/writing development data.
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa                        # Default H2 admin user
+    password:                            # Empty password (safe: H2 is not exposed to network)
+
+  # ===========================================================================
+  # JPA / HIBERNATE — Test Settings
+  # ===========================================================================
+
+  jpa:
+    hibernate:
+      # create-drop: Creates tables from @Entity classes at the start of each
+      # test session, drops them at the end. Guarantees a clean database for
+      # every test run. No migration scripts needed.
+      ddl-auto: create-drop
+
+    # H2 dialect — explicit for clarity (Spring Boot auto-detects it).
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  # ===========================================================================
+  # SQL INITIALIZATION — Disabled
+  # ===========================================================================
+  # Prevents Spring Boot from executing data.sql or schema.sql during tests.
+  # Test data is created programmatically in @BeforeEach methods, giving each
+  # test full control over its initial state.
+  #
+  # Why not use data.sql for tests?
+  # - Tests need different data for different scenarios.
+  # - @BeforeEach gives per-test control.
+  # - DataInitializer doesn't run in tests (requires @Profile("dev")).
+
+  sql:
+    init:
+      mode: never
