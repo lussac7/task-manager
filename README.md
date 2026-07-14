@@ -389,8 +389,10 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 - GitHub: [@lussac7](https://github.com/lussac7/task-manager)
 - LinkedIn: [Lussac P. Maia](https://linkedin.com/in/lussac-maia-eng-software)
 
-Acknowledgments: This project was developed with the assistance of DeepSeek AI for code 
-generation and problem-solving. 
+Acknowledgments: 
+
+This full-stack task management project was developed with the assistance of 
+DeepSeek AI for code generation and problem-solving.<br>
 All architecture decisions, testing, and final code reviews were performed by me.
 
 ---
