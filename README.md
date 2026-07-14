@@ -251,15 +251,6 @@ Response includes metadata:
 ```
 ---
 
-## Interactive API Docs
-
-After starting the app, open:
-
-```text
-http://localhost:8080/swagger-ui.html
-```
----
-
 ## Running Tests
 
 ```bash
@@ -352,7 +343,6 @@ Also, the full-stack project is structured as follows.
 - **PostgreSQL / H2** — Production / Development database
 - **Vanilla JavaScript** — SPA frontend (no frameworks)
 - **JUnit 5 + Mockito** — Testing
-- **Swagger/OpenAPI** — API documentation
 - **Docker** — Containerization
 - **PlantUML** — Architecture diagrams
 - **Maven** — Build and dependency management
