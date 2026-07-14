@@ -113,11 +113,11 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 Open `http://localhost:3000/login` (SPA front-end port) and log in with:
 
-| Username | Password | Role |
-| :--- | :--- | :--- |
-| `alice` | `password123` | USER |
-| `bob` | `password123` | USER |
-| `admin` | `admin123` | ADMIN |
+| Username | Password      | Role  |
+|:---------|:--------------|:------|
+| `alice`  | `password123` | USER  |
+| `bob`    | `password123` | USER  |
+| `admin`  | `admin123`    | ADMIN |
 
 ### Production Deployment
 
@@ -222,12 +222,12 @@ The SPA uses session-based auth (form login). For REST clients, use HTTP Basic A
 
 ### Tasks (User)
 
-| Method  | Endpoint                                    | Description           |
-|:--------|:--------------------------------------------|:----------------------|
-| `GET`   | `/api/tasks?page=0&size=10&sort=createdAt,desc&complete=false` | List user's tasks |
-| `POST`  | `/api/tasks`                                | Create a new task     |
-| `PATCH` | `/api/tasks/{id}/complete`                  | Mark task as complete |
-| `PATCH` | `/api/tasks/assign`                         | Assign task to a user |
+| Method  | Endpoint                                                       | Description             |
+|:--------|:---------------------------------------------------------------|:------------------------|
+| `GET`   | `/api/tasks?page=0&size=10&sort=createdAt,desc&complete=false` | List user's tasks       |
+| `POST`  | `/api/tasks`                                                   | Create a new task       |
+| `PATCH` | `/api/tasks/{id}/complete`                                     | Mark task as complete   |
+| `PATCH` | `/api/tasks/assign`                                            | Assign task to a user   |
 
 ### Tasks (Admin)
 
@@ -373,6 +373,41 @@ Also, the full-stack project adding the front-end port 3000 has the structure be
 
 - **Javadoc:** Generate with `mvn javadoc:javadoc` (output in `target/reports/apidocs/`)
 - **UML Diagrams:** See `docs/diagrams/` folder
+
+---
+
+## Screenshots
+
+### Login page
+<div style="text-align: center;">
+  <img src="screenshots/login.png" alt="Login" width="600">
+  <p><em>The secure login interface with email/password authentication.</em></p>
+</div>
+
+### Task Management and User Dashboard
+<div style="text-align: center;">
+  <img src="screenshots/dashboard-user-task-list.png" alt="UDashboard" width="600">
+  <p><em>Create and manage tasks, and overview with status filtering and quick actions.
+</em></p>
+</div>
+
+### Admin Panels
+<div style="text-align: center;">
+  <img src="screenshots/admin-dashboard.png" alt="ADashboard" width="600">
+  <p><em>Panel view showing all tasks of all users (available to ADMIN users).</em></p>
+</div>
+<div style="text-align: center;">
+  <img src="screenshots/admin-manage-users.png" alt="ADashboard" width="600">
+  <p><em>User management and system controls (available to ADMIN users).</em></p>
+</div>
+
+### Create Account
+<div style="text-align: center;">
+  <img src="screenshots/register-account.png" alt="Register" width="600">
+  <p><em>Register page for new users.</em></p>
+</div>
+
+> **Note**: Sample data is for demonstration purposes only.
 
 ---
 
