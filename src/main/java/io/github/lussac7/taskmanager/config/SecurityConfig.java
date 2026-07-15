@@ -17,15 +17,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 /**
  * Spring Security configuration for the Task Manager.
@@ -66,29 +63,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // =============================================================
-                // CORS (Cross-Origin Resource Sharing)
-                // =============================================================
-                // Allows the frontend SPA to call the backend API.
-                // In development: localhost:3000 → localhost:8080
-                // In production: your frontend domain → your API domain
-                .cors(cors -> {
-                    CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(List.of(frontendUrl));
-                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                    config.setAllowedHeaders(List.of(
-                            "Authorization",
-                            "Content-Type",
-                            "Accept",
-                            "X-Requested-With"
-                    ));
-                    config.setAllowCredentials(true);
-
-                    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                    source.registerCorsConfiguration("/**", config);
-                    cors.configurationSource(source);
-                })
-
                 // =============================================================
                 // CSRF PROTECTION (Cross-Site Request Forgery)
                 // =============================================================
@@ -181,7 +155,7 @@ public class SecurityConfig {
                         .loginPage("/index.html")                                 // Our custom login page
                         .loginProcessingUrl("/login")                             // Spring intercepts POST here
                         .defaultSuccessUrl(frontendUrl + "/dashboard.html")       // Redirect on success
-                        .failureUrl(frontendUrl + "/index.html?error")            // Redirect on failure
+                        .failureUrl(frontendUrl + "/index.html?error")  // Redirect on failure
                         .permitAll()                                              // Everyone can see login
                 )
 
@@ -206,12 +180,12 @@ public class SecurityConfig {
                 // Spring Security blocks frames by default (clickjacking protection).
                 // =============================================================
                 .headers(headers -> headers
-                        .frameOptions(frame -> frame.sameOrigin())
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                         .httpStrictTransportSecurity(hsts -> hsts
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(31536000)  // 1 year
                         )
-                        .contentTypeOptions(contentType -> contentType.disable())  // Actually adds nosniff                        // Add these to force HTTPS and prevent clickjacking/MIME sniffing
+                        .contentTypeOptions(HeadersConfigurer.ContentTypeOptionsConfig::disable)  //Actually adds nosniff                        // Add these to force HTTPS and prevent clickjacking/MIME sniffing
                         .contentSecurityPolicy(csp -> csp
                                 .policyDirectives("default-src 'self'; " +
                                 "script-src 'self' 'unsafe-inline'; " +
